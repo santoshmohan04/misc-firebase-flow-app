@@ -63,6 +63,47 @@
         }
       },
       "required": ["title", "content", "createdAt"]
+    },
+    "Conversation": {
+        "title": "Conversation",
+        "type": "object",
+        "description": "A chat conversation between a user and the AI bot.",
+        "properties": {
+            "title": {
+                "type": "string",
+                "description": "The title of the conversation."
+            },
+            "createdAt": {
+                "type": "object",
+                "description": "Timestamp of when the conversation was created."
+            },
+             "userId": {
+                "type": "string",
+                "description": "The ID of the user who owns the conversation."
+            }
+        },
+        "required": ["title", "createdAt", "userId"]
+    },
+    "Message": {
+        "title": "Message",
+        "type": "object",
+        "description": "A single message within a chat conversation.",
+        "properties": {
+            "role": {
+                "type": "string",
+                "enum": ["user", "bot"],
+                "description": "The role of the message sender."
+            },
+            "content": {
+                "type": "string",
+                "description": "The content of the message."
+            },
+            "timestamp": {
+                "type": "object",
+                "description": "Timestamp of when the message was sent."
+            }
+        },
+        "required": ["role", "content", "timestamp"]
     }
   },
   "auth": {
@@ -106,6 +147,50 @@
             {
               "name": "noteId",
               "description": "The unique identifier for the note."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/conversations/{conversationId}",
+        "definition": {
+          "entityName": "Conversation",
+          "schema": {
+            "$ref": "#/backend/entities/Conversation"
+          },
+          "description": "Stores conversation metadata for a user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "conversationId",
+              "description": "The unique identifier for the conversation."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/conversations/{conversationId}/messages/{messageId}",
+        "definition": {
+          "entityName": "Message",
+          "schema": {
+            "$ref": "#/backend/entities/Message"
+          },
+          "description": "Stores messages for a specific conversation.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "conversationId",
+              "description": "The unique identifier for the conversation."
+            },
+            {
+              "name": "messageId",
+              "description": "The unique identifier for the message."
             }
           ]
         }

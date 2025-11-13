@@ -38,6 +38,14 @@ service cloud.firestore {
       match /notes/{noteId} {
         allow read, write: if isSignedIn() && isOwner(userId);
       }
+
+      match /conversations/{conversationId} {
+        allow read, write: if isSignedIn() && isOwner(userId);
+
+        match /messages/{messageId} {
+            allow read, write: if isSignedIn() && isOwner(userId);
+        }
+      }
     }
   }
 }

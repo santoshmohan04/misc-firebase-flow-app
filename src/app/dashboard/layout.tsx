@@ -10,7 +10,7 @@ import {
   Home,
   LogOut,
   Menu,
-  RadioTower,
+  MessageSquare,
   User,
 } from "lucide-react";
 import { useEffect } from "react";
@@ -73,7 +73,7 @@ export default function DashboardLayout({
   const navItems = [
     { href: "/dashboard", icon: Home, label: "Dashboard" },
     { href: "/dashboard/firestore", icon: Database, label: "Firestore" },
-    { href: "/dashboard/realtime", icon: RadioTower, label: "Real-time" },
+    { href: "/dashboard/realtime", icon: MessageSquare, label: "AI Chat" },
     {
       href: "/dashboard/notifications",
       icon: Bell,
@@ -96,7 +96,7 @@ export default function DashboardLayout({
           key={href}
           href={href}
           className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary ${
-            pathname === href
+            pathname.startsWith(href) && (href !== '/dashboard' || pathname === '/dashboard')
               ? "bg-muted text-primary"
               : "text-muted-foreground"
           }`}
