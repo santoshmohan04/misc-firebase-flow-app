@@ -1,0 +1,75 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user within the FirebaseFlow application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User's display name."
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "URL of the user's profile photo.",
+          "format": "uri"
+        },
+        "emailVerified": {
+          "type": "boolean",
+          "description": "Indicates if the user's email address has been verified."
+        },
+        "creationTime": {
+          "type": "string",
+          "description": "Timestamp of when the user account was created.",
+          "format": "date-time"
+        },
+        "lastSignInTime": {
+          "type": "string",
+          "description": "Timestamp of the user's last sign-in.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "email"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information. Access is restricted to the user with the matching userId. No denormalized fields are needed as access control is based on the path.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user, matching the Firebase Authentication UID."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "This design prioritizes simplicity and security for the FirebaseFlow application, especially regarding user data and authentication. The primary focus is on isolating user data within their respective user documents to simplify security rules and avoid complex authorization logic. The structure is designed to prevent unauthorized access to user information and support the core features like data storage and real-time updates.\n\n**Authorization Independence:** User data is stored directly under the `/users/{userId}` path.  No `get()` calls are required in the security rules because all relevant authorization information is implicit in the path itself. Access to user data is controlled by the authenticated user ID (`request.auth.uid`).\n\n**QAPs (Rules are not Filters):** The structure supports secure `list` operations by ensuring that only the authenticated user can access their own data.  There is no need to filter data based on user ID within a collection because the data is already segregated by user ID in the path.  This allows for straightforward security rules that permit access only to the specific user's document."
+  }
+}

@@ -1,0 +1,48 @@
+/**
+ * @file Firestore Security Rules
+ * @description This ruleset enforces a strict user-ownership model for the FirebaseFlow application.
+ *
+ * Data Structure:
+ * All user data is nested under `/users/{userId}`, ensuring that each user's data is isolated.
+ *
+ * Key Security Decisions:
+ * - Users can only access their own data.
+ * - User listing is disallowed to protect user privacy.
+ *
+ * Denormalization for Authorization:
+ * Authorization is based on the path `/users/{userId}`, matching the `request.auth.uid`. No denormalization is required.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Manages user profile information. Only the user with the matching userId can access their own data.
+     * @path /users/{userId}
+     * @allow (create) User 'user_abc' with matching auth UID can create their profile: request.auth.uid == 'user_abc'.
+     * @allow (get, update, delete) User 'user_abc' with matching auth UID can read and modify their profile.
+     * @deny (create, get, update, delete) User 'user_xyz' cannot access user 'user_abc' data.
+     * @principle Enforces document ownership.
+     */
+    match /users/{userId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false;
+
+      allow create: if isOwner(userId) && request.resource.data.id == request.auth.uid;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+  }
+}
