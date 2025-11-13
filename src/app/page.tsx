@@ -33,7 +33,7 @@ import {
   initiateEmailSignUp,
   initiateAnonymousSignIn,
 } from "@/firebase/non-blocking-login";
-import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, AuthError } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 
 const signInSchema = z.object({
@@ -81,11 +81,11 @@ export default function AuthenticationPage() {
           router.push('/dashboard');
         }
       })
-      .catch((error) => {
+      .catch((error: AuthError) => {
         // Handle Errors here.
         toast({
           title: "Google Sign-In Error",
-          description: "Please make sure Google Sign-In is enabled in your Firebase project settings.",
+          description: error.message || "An unexpected error occurred. Please try again.",
           variant: "destructive",
         });
       });
