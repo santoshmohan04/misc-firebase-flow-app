@@ -51,6 +51,17 @@ export default function ProfilePage() {
     if (!file || !user || !auth.currentUser) {
       return;
     }
+    
+    // Validate file size before starting the upload process
+    if (file.size > 1 * 1024 * 1024) {
+      toast({
+        title: 'Upload Error',
+        description: 'Image file is too large (max 1MB).',
+        variant: 'destructive',
+      });
+      e.target.value = ''; // Reset file input
+      return;
+    }
 
     setIsUploading(true);
     try {

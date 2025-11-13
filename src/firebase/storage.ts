@@ -13,11 +13,6 @@ const storage = getStorage(firebaseApp);
  * @returns The download URL of the uploaded image.
  */
 export const uploadProfileImage = async (file: File, userId: string): Promise<string> => {
-    // Limit file size to 1MB
-    if (file.size > 1 * 1024 * 1024) {
-        throw new Error('Image file is too large (max 1MB).');
-    }
-
     const storageRef = ref(storage, `avatars/${userId}/${file.name}`);
     
     try {
