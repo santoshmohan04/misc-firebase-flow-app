@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { ThemeSwitcher } from '@/components/theme-switcher';
 
 export default function SettingsPage() {
   return (
@@ -22,7 +23,7 @@ export default function SettingsPage() {
                 Enable or disable dark mode for the application.
               </span>
             </Label>
-            <Switch id="dark-mode" />
+            <ThemeSwitcher />
           </div>
            <div className="flex items-center justify-between space-x-2">
             <Label htmlFor="notifications" className="flex flex-col space-y-1">
