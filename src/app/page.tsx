@@ -32,7 +32,8 @@ import {
   initiateEmailSignIn,
   initiateEmailSignUp,
 } from "@/firebase/non-blocking-login";
-import { getAuth, GoogleAuthProvider, signInWithRedirect } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult } from "firebase/auth";
+import { useToast } from "@/hooks/use-toast";
 
 const signInSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -52,6 +53,7 @@ export default function AuthenticationPage() {
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
+  const { toast } = useToast();
 
   const signInForm = useForm<SignInFormValues>({
     resolver: zodResolver(signInSchema),
@@ -68,6 +70,26 @@ export default function AuthenticationPage() {
       router.push("/dashboard");
     }
   }, [user, isUserLoading, router]);
+
+  useEffect(() => {
+    const auth = getAuth();
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result) {
+          // User is signed in.
+          router.push('/dashboard');
+        }
+      })
+      .catch((error) => {
+        // Handle Errors here.
+        console.error("Google sign-in error", error);
+        toast({
+          title: "Google Sign-In Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      });
+  }, [router, toast]);
 
   const onSignInSubmit: SubmitHandler<SignInFormValues> = (data) => {
     initiateEmailSignIn(auth, data.email, data.password);
