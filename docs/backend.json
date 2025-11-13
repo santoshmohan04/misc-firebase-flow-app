@@ -64,6 +64,26 @@
       },
       "required": ["title", "content", "createdAt"]
     },
+    "Todo": {
+      "title": "Todo",
+      "type": "object",
+      "description": "A to-do item created by a user.",
+      "properties": {
+        "task": {
+          "type": "string",
+          "description": "The content of the to-do item."
+        },
+        "completed": {
+          "type": "boolean",
+          "description": "Whether the to-do item is completed."
+        },
+        "createdAt": {
+          "type": "object",
+          "description": "Timestamp of when the to-do was created."
+        }
+      },
+      "required": ["task", "completed", "createdAt"]
+    },
     "Conversation": {
         "title": "Conversation",
         "type": "object",
@@ -147,6 +167,26 @@
             {
               "name": "noteId",
               "description": "The unique identifier for the note."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/todos/{todoId}",
+        "definition": {
+          "entityName": "Todo",
+          "schema": {
+            "$ref": "#/backend/entities/Todo"
+          },
+          "description": "Stores to-do items for a specific user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "todoId",
+              "description": "The unique identifier for the to-do item."
             }
           ]
         }

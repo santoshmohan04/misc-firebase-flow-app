@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { useUser } from "@/firebase";
+import { Todos } from "@/components/dashboard/todos";
 
 export default function DashboardPage() {
   const { user } = useUser();
@@ -74,7 +75,8 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 mt-4">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
+        <Todos />
         <Card className="col-span-1 lg:col-span-3">
           <CardHeader>
             <CardTitle>Key Features</CardTitle>
