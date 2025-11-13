@@ -80,22 +80,20 @@ export default function DashboardPage() {
         setIsLoadingEvents(true);
         try {
             const fetchedEvents = await listCalendarEvents({ accessToken, maxResults: 10 });
-            if (fetchedEvents && !fetchedEvents.error) {
+            if (Array.isArray(fetchedEvents)) {
               setEvents(fetchedEvents);
-            } else {
-              toast({
-                title: "Error fetching calendar events",
-                description: fetchedEvents.error || "Please try signing in again.",
-                variant: "destructive"
-              });
-              if(fetchedEvents.error?.includes('token')){
-                sessionStorage.removeItem('google-access-token');
-                setAccessToken(null);
-              }
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            toast({ title: "Error", description: "Could not fetch calendar events.", variant: "destructive" });
+            toast({ 
+              title: "Error fetching calendar events", 
+              description: error.message || "Could not fetch calendar events.", 
+              variant: "destructive" 
+            });
+            if(error.message?.includes('token')){
+              sessionStorage.removeItem('google-access-token');
+              setAccessToken(null);
+            }
         } finally {
             setIsLoadingEvents(false);
         }
@@ -137,11 +135,9 @@ export default function DashboardPage() {
         startTime: new Date(eventForm.startTime).toISOString(),
         endTime: new Date(eventForm.endTime).toISOString(),
       });
-      if(newEvent && !newEvent.error) {
+      if(newEvent) {
         setEvents(prev => [...prev, newEvent].sort((a, b) => new Date(a.start.dateTime).getTime() - new Date(b.start.dateTime).getTime()));
         toast({ title: "Success", description: "Event created successfully!" });
-      } else {
-         toast({ title: "Error creating event", description: newEvent.error, variant: "destructive" });
       }
     } catch(e: any) {
        toast({ title: "Error", description: e.message || "Failed to create event.", variant: "destructive" });
@@ -158,9 +154,9 @@ export default function DashboardPage() {
       icon: <Database className="h-6 w-6 text-primary" />,
     },
     {
-      title: "Real-time Updates",
-      description: "Sync data across clients in real-time.",
-      href: "/dashboard/realtime",
+      title: "AI Chat",
+      description: "Talk to our real-time AI assistant.",
+      href: "/dashboard/chat-history",
       icon: <RadioTower className="h-6 w-6 text-primary" />,
     },
   ];
@@ -239,7 +235,7 @@ export default function DashboardPage() {
                       <DialogClose asChild>
                           <Button variant="outline">Cancel</Button>
                       </DialogClose>
-                      <Button onClick={handleSaveEvent}>Save</Button>
+                      <Button onClick={handleSaveEvent}>Save</button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
@@ -299,19 +295,6 @@ export default function DashboardPage() {
                 <ArrowRight className="h-5 w-5 text-muted-foreground" />
               </Link>
             ))}
-          </CardContent>
-        </Card>
-        <Card className="lg:col-span-4 col-span-1">
-          <CardHeader>
-            <CardTitle>AI Chat Usage</CardTitle>
-            <CardDescription>
-              This is a sample chart.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pl-2">
-           <div className="h-[250px] w-full flex items-center justify-center text-muted-foreground">
-              Chart data would be displayed here.
-            </div>
           </CardContent>
         </Card>
       </div>

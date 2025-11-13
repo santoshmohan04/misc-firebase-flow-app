@@ -52,9 +52,9 @@ const listEventsTool = ai.defineTool(
       });
       return res.data.items || [];
     } catch (error: any) {
-      console.error('Error listing calendar events:', error.message);
-      // Return a structured error to the client
-      return { error: 'Failed to list calendar events. The access token might be invalid or expired.' };
+        console.error('Error listing calendar events:', error.message);
+        // Re-throw the error to be caught by the calling function's try-catch block
+        throw new Error('Failed to list calendar events. The access token might be invalid or expired.');
     }
   }
 );
@@ -96,7 +96,8 @@ const createEventTool = ai.defineTool(
       return res.data;
     } catch (error: any) {
       console.error('Error creating calendar event:', error.message);
-      return { error: 'Failed to create calendar event. The access token might be invalid or expired.' };
+       // Re-throw the error to be caught by the calling function's try-catch block
+      throw new Error('Failed to create calendar event. The access token might be invalid or expired.');
     }
   }
 );
