@@ -138,7 +138,7 @@ export default function DashboardLayout({
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-2 pt-0 md:p-4 md:pt-0">
-                <Link href="#">
+                <Link href="https://firebase.google.com/docs" target="_blank" rel="noopener noreferrer">
                   <Button size="sm" className="w-full">
                     Documentation
                   </Button>
@@ -181,7 +181,7 @@ export default function DashboardLayout({
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Link href="#">
+                    <Link href="https://firebase.google.com/docs" target="_blank" rel="noopener noreferrer">
                       <Button size="sm" className="w-full">
                         Documentation
                       </Button>
