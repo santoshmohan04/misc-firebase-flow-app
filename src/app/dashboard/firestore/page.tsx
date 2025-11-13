@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Edit, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -28,12 +28,29 @@ import {
   SheetFooter,
   SheetClose,
 } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { collection, serverTimestamp } from "firebase/firestore";
-import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { collection, serverTimestamp, doc } from "firebase/firestore";
+import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 type Note = {
   id: string;
@@ -53,20 +70,55 @@ export default function FirestorePage() {
     [user, firestore]
   );
   const { data: notes, isLoading } = useCollection<Note>(notesCollectionRef);
-  const [newNoteTitle, setNewNoteTitle] = useState("");
-  const [newNoteContent, setNewNoteContent] = useState("");
+  
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [noteForm, setNoteForm] = useState({ title: "", content: "" });
 
-  const handleAddNote = () => {
-    if (!newNoteTitle || !newNoteContent || !notesCollectionRef) return;
-    const newNote = {
-      title: newNoteTitle,
-      content: newNoteContent,
-      createdAt: serverTimestamp(),
-    };
-    addDocumentNonBlocking(notesCollectionRef, newNote);
-    setNewNoteTitle("");
-    setNewNoteContent("");
+
+  const handleAddNoteClick = () => {
+    setEditingNote(null);
+    setNoteForm({ title: "", content: "" });
+    setIsSheetOpen(true);
   };
+
+  const handleEditNoteClick = (note: Note) => {
+    setEditingNote(note);
+    setNoteForm({ title: note.title, content: note.content });
+    setIsSheetOpen(true);
+  };
+
+  const handleDeleteNote = (noteId: string) => {
+    if (!notesCollectionRef) return;
+    const noteDocRef = doc(notesCollectionRef, noteId);
+    deleteDocumentNonBlocking(noteDocRef);
+  };
+
+  const handleSaveNote = () => {
+    if (!notesCollectionRef || !noteForm.title || !noteForm.content) return;
+
+    if (editingNote) {
+      // Update existing note
+      const noteDocRef = doc(notesCollectionRef, editingNote.id);
+      updateDocumentNonBlocking(noteDocRef, {
+        title: noteForm.title,
+        content: noteForm.content,
+      });
+    } else {
+      // Add new note
+      const newNote = {
+        title: noteForm.title,
+        content: noteForm.content,
+        createdAt: serverTimestamp(),
+      };
+      addDocumentNonBlocking(notesCollectionRef, newNote);
+    }
+
+    setIsSheetOpen(false);
+    setEditingNote(null);
+    setNoteForm({ title: "", content: "" });
+  };
+
 
   const formatDate = (timestamp: Note['createdAt']) => {
     if (!timestamp) return "Just now";
@@ -78,9 +130,9 @@ export default function FirestorePage() {
     <>
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold md:text-2xl">Firestore Data</h1>
-        <Sheet>
+        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
           <SheetTrigger asChild>
-            <Button size="sm" className="gap-1">
+            <Button size="sm" className="gap-1" onClick={handleAddNoteClick}>
               <PlusCircle className="h-3.5 w-3.5" />
               <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
                 Add Note
@@ -89,9 +141,9 @@ export default function FirestorePage() {
           </SheetTrigger>
           <SheetContent>
             <SheetHeader>
-              <SheetTitle>Add a New Note</SheetTitle>
+              <SheetTitle>{editingNote ? "Edit Note" : "Add a New Note"}</SheetTitle>
               <SheetDescription>
-                Create a new note to store in your Firestore database.
+                {editingNote ? "Update the details of your note." : "Create a new note to store in your Firestore database."}
               </SheetDescription>
             </SheetHeader>
             <div className="grid gap-4 py-4">
@@ -101,8 +153,8 @@ export default function FirestorePage() {
                 </Label>
                 <Input
                   id="title"
-                  value={newNoteTitle}
-                  onChange={(e) => setNewNoteTitle(e.target.value)}
+                  value={noteForm.title}
+                  onChange={(e) => setNoteForm({...noteForm, title: e.target.value})}
                   className="col-span-3"
                 />
               </div>
@@ -112,19 +164,18 @@ export default function FirestorePage() {
                 </Label>
                 <Textarea
                   id="content"
-                  value={newNoteContent}
-                  onChange={(e) => setNewNoteContent(e.target.value)}
+                  value={noteForm.content}
+                  onChange={(e) => setNoteForm({...noteForm, content: e.target.value})}
                   className="col-span-3"
                   rows={5}
                 />
               </div>
             </div>
             <SheetFooter>
-              <SheetClose asChild>
-                <Button type="submit" onClick={handleAddNote}>
+                <Button variant="outline" onClick={() => setIsSheetOpen(false)}>Cancel</Button>
+                <Button type="submit" onClick={handleSaveNote}>
                   Save note
                 </Button>
-              </SheetClose>
             </SheetFooter>
           </SheetContent>
         </Sheet>
@@ -153,6 +204,9 @@ export default function FirestorePage() {
                   <TableHead className="hidden md:table-cell">
                     Created At
                   </TableHead>
+                  <TableHead>
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -162,6 +216,47 @@ export default function FirestorePage() {
                     <TableCell>{note.content}</TableCell>
                     <TableCell className="hidden md:table-cell">
                       {formatDate(note.createdAt)}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button aria-haspopup="true" size="icon" variant="ghost">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEditNoteClick(note)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">
+                                <Trash className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This action cannot be undone. This will permanently delete your note.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-destructive hover:bg-destructive/90"
+                                  onClick={() => handleDeleteNote(note.id)}
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
