@@ -46,36 +46,33 @@ export default function ProfilePage() {
     }
   };
   
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && user) {
-        handleImageUpload(file, user.uid);
+    if (!file || !user || !auth.currentUser) {
+      return;
     }
-  }
 
-  const handleImageUpload = async (file: File, userId: string) => {
-    if (!auth.currentUser) return;
     setIsUploading(true);
-
     try {
-        const photoURL = await uploadProfileImage(file, userId);
-        await updateProfile(auth.currentUser, { photoURL });
-        toast({
-            title: "Success",
-            description: "Profile photo updated successfully!"
-        });
+      const photoURL = await uploadProfileImage(file, user.uid);
+      await updateProfile(auth.currentUser, { photoURL });
+      toast({
+        title: "Success",
+        description: "Profile photo updated successfully!",
+      });
     } catch (error: any) {
-         toast({
-          title: 'Upload Error',
-          description: error.message || "Failed to upload image.",
-          variant: 'destructive',
-        });
+      toast({
+        title: 'Upload Error',
+        description: error.message || "Failed to upload image.",
+        variant: 'destructive',
+      });
     } finally {
-        setIsUploading(false);
+      setIsUploading(false);
+      // Reset file input to allow re-uploading the same file if needed
+      e.target.value = '';
     }
   };
 
-  
   const getAvatar = () => {
     if (user?.photoURL) {
       return {
@@ -107,7 +104,7 @@ export default function ProfilePage() {
                       width={80}
                       height={80}
                       alt={avatar.description}
-                      className="rounded-full"
+                      className="rounded-full object-cover"
                       data-ai-hint={avatar.imageHint}
                     />
                   )}
