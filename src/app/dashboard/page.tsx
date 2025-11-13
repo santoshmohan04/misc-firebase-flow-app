@@ -52,17 +52,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const chartData = [
-  { month: "January", requests: 186 },
-  { month: "February", requests: 305 },
-  { month: "March", requests: 237 },
-  { month: "April", requests: 273 },
-  { month: "May", requests: 209 },
-  { month: "June", requests: 214 },
+  { month: "January", messages: 186 },
+  { month: "February", messages: 305 },
+  { month: "March", messages: 237 },
+  { month: "April", messages: 273 },
+  { month: "May", messages: 209 },
+  { month: "June", messages: 214 },
 ];
 
 const chartConfig = {
-  requests: {
-    label: "API Requests",
+  messages: {
+    label: "AI Chat Usage",
     color: "hsl(var(--primary))",
   },
 } satisfies ChartConfig;
@@ -263,123 +263,120 @@ export default function DashboardPage() {
                     <DialogClose asChild>
                         <Button variant="outline">Cancel</Button>
                     </DialogClose>
-                    <Button onClick={handleSaveEvent}>Save Event</Button>
+                    <Button onClick={handleSaveEvent}>Save</Button>
                   </DialogFooter>
                 </DialogContent>
-             </Dialog>
+              </Dialog>
            </CardHeader>
-           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             <div>
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={setDate}
-                  className="rounded-md border"
-                />
-             </div>
-             <div className="space-y-4">
-                <h3 className="font-semibold text-md">Upcoming Events</h3>
-                <div className="space-y-3">
-                  {events.sort((a,b) => a.time.localeCompare(b.time)).map((event) => (
-                    <div key={event.id} className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3">
-                            <div className="text-sm text-muted-foreground">{formatTime(event.time)}</div>
-                            <div className="flex flex-col">
-                                <span className="font-medium">{event.title}</span>
-                                <Badge variant="secondary" className="w-fit mt-1">{event.category}</Badge>
-                            </div>
-                        </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-6 w-6">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            <DropdownMenuItem onClick={() => handleEditEvent(event)}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit
-                            </DropdownMenuItem>
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                        <Trash className="mr-2 h-4 w-4 text-destructive" />
-                                        <span className="text-destructive">Delete</span>
-                                    </DropdownMenuItem>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        This action cannot be undone. This will permanently delete your event.
-                                    </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteEvent(event.id)}>Delete</AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
-                  ))}
-                </div>
-             </div>
+           <CardContent>
+             {events.sort((a,b) => a.time.localeCompare(b.time)).map(event => (
+               <div key={event.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
+                  <div>
+                    <p className="font-semibold">{formatTime(event.time)} - {event.title}</p>
+                    <Badge variant="outline">{event.category}</Badge>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => handleEditEvent(event)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit
+                      </DropdownMenuItem>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                           <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">
+                             <Trash className="mr-2 h-4 w-4" />
+                             Delete
+                           </DropdownMenuItem>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete this event.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteEvent(event.id)} className="bg-destructive hover:bg-destructive/90">
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+               </div>
+             ))}
+             {events.length === 0 && <p className="text-muted-foreground text-sm">No events scheduled for today.</p>}
            </CardContent>
         </Card>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {features.map((feature) => (
-          <Card key={feature.title} className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-lg font-medium">
-                {feature.title}
-              </CardTitle>
-              {feature.icon}
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                {feature.description}
-              </p>
-              <Link href={feature.href} className="mt-4 inline-block">
-                <Button variant="outline" size="sm">
-                  Go to {feature.title.split(" ")[0]}
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 mt-4">
+        <Card className="col-span-1 lg:col-span-4">
+          <CardHeader>
+            <CardTitle>AI Chat Usage</CardTitle>
+            <CardDescription>
+              A chart showing your AI message usage over time. (Sample Data)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pl-2">
+            <ChartContainer config={chartConfig} className="h-[250px] w-full">
+              <BarChart accessibilityLayer data={chartData}>
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="month"
+                  tickLine={false}
+                  tickMargin={10}
+                  axisLine={false}
+                  tickFormatter={(value) => value.slice(0, 3)}
+                />
+                <YAxis />
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent />}
+                />
+                <Bar dataKey="messages" fill="var(--color-messages)" radius={8} />
+              </BarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+        <Card className="col-span-1 lg:col-span-3">
+          <CardHeader>
+            <CardTitle>Key Features</CardTitle>
+            <CardDescription>
+              Explore the core features of FirebaseFlow.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            {features.map((feature) => (
+              <Link
+                key={feature.title}
+                href={feature.href}
+                className="flex items-center justify-between rounded-lg border p-4 transition-all hover:bg-muted"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="rounded-lg bg-muted p-2">
+                    {feature.icon}
+                  </div>
+                  <div>
+                    <p className="font-semibold">{feature.title}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {feature.description}
+                    </p>
+                  </div>
+                </div>
+                <ArrowRight className="h-5 w-5 text-muted-foreground" />
               </Link>
-            </CardContent>
-          </Card>
-        ))}
+            ))}
+          </CardContent>
+        </Card>
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>API Usage</CardTitle>
-          <CardDescription>
-            Showing API requests for the last 6 months.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={chartConfig} className="h-[250px] w-full">
-            <BarChart accessibilityLayer data={chartData}>
-              <CartesianGrid vertical={false} />
-              <XAxis
-                dataKey="month"
-                tickLine={false}
-                tickMargin={10}
-                axisLine={false}
-                tickFormatter={(value) => value.slice(0, 3)}
-              />
-              <YAxis />
-              <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent indicator="dot" />}
-              />
-              <Bar dataKey="requests" fill="var(--color-requests)" radius={4} />
-            </BarChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
     </>
   );
 }
