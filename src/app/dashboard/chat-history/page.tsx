@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -36,9 +37,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { collection, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
+import { collection, deleteDoc, doc, serverTimestamp, addDoc } from "firebase/firestore";
 import Link from "next/link";
-import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { useRouter } from "next/navigation";
 
 
 type Conversation = {
@@ -53,6 +54,7 @@ type Conversation = {
 
 export default function ChatHistoryPage() {
   const { user } = useUser();
+  const router = useRouter();
   const firestore = useFirestore();
   const conversationsCollectionRef = useMemoFirebase(
     () => (user ? collection(firestore, "users", user.uid, "conversations") : null),
@@ -62,12 +64,12 @@ export default function ChatHistoryPage() {
 
   const handleDeleteConversation = async (conversationId: string) => {
     if (!conversationsCollectionRef) return;
-    // Note: This only deletes the conversation document, not the subcollection of messages.
-    // A cloud function would be needed for full cleanup.
+    // Note: This only deletes the conversation document. For a production app,
+    // a cloud function would be needed to delete the subcollection of messages.
     await deleteDoc(doc(conversationsCollectionRef, conversationId));
   };
   
-  const handleNewConversation = () => {
+  const handleNewConversation = async () => {
     if (!conversationsCollectionRef || !user) return;
     
     const newConversation = {
@@ -75,7 +77,8 @@ export default function ChatHistoryPage() {
       createdAt: serverTimestamp(),
       userId: user.uid,
     };
-    addDocumentNonBlocking(conversationsCollectionRef, newConversation);
+    const docRef = await addDoc(conversationsCollectionRef, newConversation);
+    router.push(`/dashboard/realtime?conversationId=${docRef.id}`);
   }
 
   const formatDate = (timestamp: Conversation['createdAt']) => {
@@ -88,13 +91,11 @@ export default function ChatHistoryPage() {
     <>
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold md:text-2xl">Chat History</h1>
-         <Button size="sm" className="gap-1" onClick={handleNewConversation} asChild>
-            <Link href="/dashboard/realtime">
+         <Button size="sm" className="gap-1" onClick={handleNewConversation}>
               <PlusCircle className="h-3.5 w-3.5" />
               <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
                 New Chat
               </span>
-            </Link>
         </Button>
       </div>
 
@@ -111,8 +112,8 @@ export default function ChatHistoryPage() {
             <div className="text-center text-muted-foreground py-8">
                 <MessageSquare className="mx-auto h-12 w-12" />
                 <p className="mt-4">You don&apos;t have any saved conversations yet.</p>
-                 <Button asChild className="mt-4">
-                    <Link href="/dashboard/realtime">Start a new Chat</Link>
+                 <Button onClick={handleNewConversation} className="mt-4">
+                    Start a new Chat
                 </Button>
             </div>
           )}
@@ -145,7 +146,7 @@ export default function ChatHistoryPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
+                           <DropdownMenuItem asChild>
                             <Link href={`/dashboard/realtime?conversationId=${convo.id}`} className="flex items-center w-full">
                                 <Edit className="mr-2 h-4 w-4" />
                                 View/Edit
@@ -162,7 +163,7 @@ export default function ChatHistoryPage() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This action cannot be undone. This will permanently delete your conversation history.
+                                  This action cannot be undone. This will permanently delete your conversation document, but not the messages within it.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>

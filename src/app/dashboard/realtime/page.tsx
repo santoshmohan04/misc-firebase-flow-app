@@ -1,7 +1,9 @@
+
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { Send, Bot, User as UserIcon, Loader2, Sparkles } from "lucide-react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
+import { useSearchParams } from 'next/navigation';
+import { Send, Bot, User as UserIcon, Loader2, Sparkles, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,6 +20,8 @@ import { chat } from "@/ai/flows/chat-flow";
 import { collection, addDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
 import { useCollection } from "@/firebase/firestore/use-collection";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+
 
 type Message = {
   id?: string;
@@ -26,19 +30,22 @@ type Message = {
   timestamp?: any;
 };
 
-export default function RealtimePage() {
+function RealtimeChatPage() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const conversationId = searchParams.get('conversationId');
+
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  const conversationId = "main-chat"; // For now, we'll use a single conversation
 
   const messagesRef = useMemoFirebase(
-    () => user ? collection(firestore, `users/${user.uid}/conversations/${conversationId}/messages`) : null,
-    [user, firestore]
+    () => user && conversationId ? collection(firestore, `users/${user.uid}/conversations/${conversationId}/messages`) : null,
+    [user, firestore, conversationId]
   );
   
   const messagesQuery = useMemoFirebase(
@@ -51,24 +58,25 @@ export default function RealtimePage() {
 
   useEffect(() => {
     if (savedMessages) {
-        // Add initial bot greeting if no history exists
-        if (savedMessages.length === 0) {
+        // Add initial bot greeting if no history exists for a valid conversation
+        if (savedMessages.length === 0 && conversationId) {
              const greeting = {
                 role: "bot" as const,
-                content: `Hello, ${user?.displayName || 'there'}! Welcome to the chat. You can ask me for the current date, time, or other basic info.`,
+                content: `Hello, ${user?.displayName || 'there'}! I'm ready to chat. You can ask me for the current date, time, or other info.`,
             };
             setMessages([greeting]);
         } else {
             setMessages(savedMessages);
         }
-    } else if (!isLoadingHistory) {
+    } else if (!isLoadingHistory && conversationId) {
+         // This case handles when a conversation is new and has no saved messages yet
          const greeting = {
             role: "bot" as const,
-            content: `Hello, ${user?.displayName || 'there'}! Welcome to the chat. You can ask me for the current date, time, or other basic info.`,
+            content: `Hello, ${user?.displayName || 'there'}! I'm ready to chat. You can ask me for the current date, time, or other info.`,
         };
         setMessages([greeting]);
     }
-  }, [savedMessages, isLoadingHistory, user]);
+  }, [savedMessages, isLoadingHistory, user, conversationId]);
 
 
   useEffect(() => {
@@ -78,7 +86,7 @@ export default function RealtimePage() {
         behavior: "smooth",
       });
     }
-  }, [messages]);
+  }, [messages, isLoading]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
@@ -93,21 +101,22 @@ export default function RealtimePage() {
       timestamp: serverTimestamp(),
     };
     
+    // Optimistic UI update
     setMessages((prev) => [...prev, {role: "user", content: input}]);
-    await addDoc(messagesRef, userMessage);
-
-    setInput("");
     setIsLoading(true);
+    
+    await addDoc(messagesRef, userMessage);
+    const currentInput = input;
+    setInput("");
 
     try {
-      const botResponseContent = await chat(input);
+      const botResponseContent = await chat(currentInput);
       const botMessage: Message = {
         role: "bot",
         content: botResponseContent,
         timestamp: serverTimestamp(),
       };
       await addDoc(messagesRef, botMessage);
-      // The useCollection hook will update the messages state automatically
     } catch (error) {
       console.error("AI Error:", error);
       const errorMessage: Message = {
@@ -122,10 +131,23 @@ export default function RealtimePage() {
   };
 
   const suggestedQuestions = [
-    "What time is it?",
+    "What time is it in New York?",
     "What is the date today?",
     "What is Firebase?",
   ];
+
+  if (!conversationId) {
+    return (
+        <div className="flex flex-col items-center justify-center h-full text-center">
+            <MessageSquare className="w-16 h-16 text-muted-foreground mb-4" />
+            <h2 className="text-2xl font-semibold mb-2">Select a conversation</h2>
+            <p className="text-muted-foreground mb-4">Choose a chat from your history or start a new one.</p>
+            <Button asChild>
+                <Link href="/dashboard/chat-history">Go to Chat History</Link>
+            </Button>
+        </div>
+    )
+  }
 
   return (
     <>
@@ -163,7 +185,7 @@ export default function RealtimePage() {
                   )}
                   <div
                     className={cn(
-                      "max-w-[75%] rounded-lg p-3 text-sm",
+                      "max-w-[75%] rounded-lg p-3 text-sm break-words",
                       message.role === "user"
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted"
@@ -222,4 +244,14 @@ export default function RealtimePage() {
       </Card>
     </>
   );
+}
+
+
+// The realtime page uses `useSearchParams()` which requires a Suspense boundary.
+export default function RealtimePageWrapper() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+      <RealtimeChatPage />
+    </Suspense>
+  )
 }
