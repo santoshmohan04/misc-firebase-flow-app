@@ -235,7 +235,7 @@ export default function DashboardPage() {
                       <DialogClose asChild>
                           <Button variant="outline">Cancel</Button>
                       </DialogClose>
-                      <Button onClick={handleSaveEvent}>Save</button>
+                      <Button onClick={handleSaveEvent}>Save</Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
