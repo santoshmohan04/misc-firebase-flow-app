@@ -74,11 +74,6 @@ export default function DashboardLayout({
     { href: "/dashboard", icon: Home, label: "Dashboard" },
     { href: "/dashboard/firestore", icon: Database, label: "Firestore" },
     { href: "/dashboard/realtime", icon: MessageSquare, label: "AI Chat" },
-    {
-      href: "/dashboard/notifications",
-      icon: Bell,
-      label: "Notifications",
-    },
   ];
 
   const NavLinks = ({

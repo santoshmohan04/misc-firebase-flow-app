@@ -187,12 +187,6 @@ export default function DashboardPage() {
       href: "/dashboard/realtime",
       icon: <RadioTower className="h-6 w-6 text-primary" />,
     },
-    {
-      title: "Push Notifications",
-      description: "Engage your users with targeted notifications.",
-      href: "/dashboard/notifications",
-      icon: <Bell className="h-6 w-6 text-primary" />,
-    },
   ];
 
   const formatTime = (timeString: string) => {
