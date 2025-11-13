@@ -33,7 +33,7 @@ import {
   initiateEmailSignUp,
   initiateAnonymousSignIn,
 } from "@/firebase/non-blocking-login";
-import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, AuthError } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, AuthError } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 
 const signInSchema = z.object({
@@ -72,25 +72,6 @@ export default function AuthenticationPage() {
     }
   }, [user, isUserLoading, router]);
 
-  useEffect(() => {
-    const auth = getAuth();
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result) {
-          // User is signed in.
-          router.push('/dashboard');
-        }
-      })
-      .catch((error: AuthError) => {
-        // Handle Errors here.
-        toast({
-          title: "Google Sign-In Error",
-          description: error.message || "An unexpected error occurred. Please try again.",
-          variant: "destructive",
-        });
-      });
-  }, [router, toast]);
-
   const onSignInSubmit: SubmitHandler<SignInFormValues> = (data) => {
     initiateEmailSignIn(auth, data.email, data.password);
   };
@@ -100,9 +81,30 @@ export default function AuthenticationPage() {
   };
 
   const handleGoogleSignIn = () => {
-    const auth = getAuth();
     const provider = new GoogleAuthProvider();
-    signInWithRedirect(auth, provider);
+    signInWithPopup(auth, provider)
+      .then((result) => {
+        // This gives you a Google Access Token. You can use it to access the Google API.
+        const credential = GoogleAuthProvider.credentialFromResult(result);
+        const token = credential?.accessToken;
+        // The signed-in user info.
+        const user = result.user;
+        router.push("/dashboard");
+      })
+      .catch((error: AuthError) => {
+        // Handle Errors here.
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        // The email of the user's account used.
+        const email = error.customData?.email;
+        // The AuthCredential type that was used.
+        const credential = GoogleAuthProvider.credentialFromError(error);
+        toast({
+          title: "Google Sign-In Error",
+          description: errorMessage || "An unexpected error occurred. Please try again.",
+          variant: "destructive",
+        });
+      });
   };
 
   const handleAnonymousSignIn = () => {
