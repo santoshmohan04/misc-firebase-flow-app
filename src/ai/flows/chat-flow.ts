@@ -26,13 +26,6 @@ const getCurrentDate = ai.defineTool(
   async () => new Date().toLocaleDateString()
 );
 
-const chatPrompt = ai.definePrompt({
-    name: 'chatPrompt',
-    system: 'You are a friendly and helpful AI assistant. Answer the user\'s question. Use the available tools if necessary.',
-    tools: [getCurrentTime, getCurrentDate],
-});
-
-
 const chatFlow = ai.defineFlow(
     {
         name: 'chatFlow',
@@ -43,7 +36,8 @@ const chatFlow = ai.defineFlow(
         const response = await ai.generate({
           prompt: prompt,
           history: [],
-          promptConfig: chatPrompt.config,
+          tools: [getCurrentTime, getCurrentDate],
+          system: 'You are a friendly and helpful AI assistant. Answer the user\'s question. Use the available tools if necessary.',
         });
         
         return response.text;
