@@ -125,23 +125,6 @@ export default function DashboardLayout({
           <div className="flex-1">
             <NavLinks />
           </div>
-          <div className="mt-auto p-4">
-            <Card>
-              <CardHeader className="p-2 pt-0 md:p-4">
-                <CardTitle>Need Help?</CardTitle>
-                <CardDescription>
-                  Check our documentation for more info.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-2 pt-0 md:p-4 md:pt-0">
-                <Link href="https://firebase.google.com/docs" target="_blank" rel="noopener noreferrer">
-                  <Button size="sm" className="w-full">
-                    Documentation
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          </div>
         </div>
       </div>
       <div className="flex flex-col">
@@ -168,23 +151,6 @@ export default function DashboardLayout({
                 </Link>
               </div>
               <NavLinks isMobile />
-              <div className="mt-auto">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Need Help?</CardTitle>
-                    <CardDescription>
-                      Check our documentation for more info.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Link href="https://firebase.google.com/docs" target="_blank" rel="noopener noreferrer">
-                      <Button size="sm" className="w-full">
-                        Documentation
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              </div>
             </SheetContent>
           </Sheet>
           <div className="w-full flex-1">
