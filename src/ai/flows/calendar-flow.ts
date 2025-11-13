@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A set of AI tools for interacting with Google Calendar.
@@ -9,7 +10,6 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { google } from 'googleapis';
-import { JSONClient } from 'google-auth-library/build/src/auth/googleauth';
 
 // Setup OAuth2 client
 const oAuth2Client = new google.auth.OAuth2(
@@ -25,16 +25,16 @@ async function getCalendarClient(accessToken: string) {
 }
 
 
-// Schema for listing calendar events
-export const ListEventsInputSchema = z.object({
+// --- Tool Definitions (Internal to this file) ---
+
+const ListEventsInputSchema = z.object({
   accessToken: z.string().describe('The user\'s Google OAuth access token.'),
   maxResults: z.number().optional().default(10).describe('Maximum number of events to return.'),
 });
-export type ListEventsInput = z.infer<typeof ListEventsInputSchema>;
 
-export const listCalendarEvents = ai.defineTool(
+const listEventsTool = ai.defineTool(
   {
-    name: 'listCalendarEvents',
+    name: 'listEventsTool',
     description: 'List upcoming events from the user\'s primary Google Calendar.',
     inputSchema: ListEventsInputSchema,
     outputSchema: z.any(),
@@ -53,26 +53,23 @@ export const listCalendarEvents = ai.defineTool(
       return res.data.items || [];
     } catch (error: any) {
       console.error('Error listing calendar events:', error.message);
+      // Return a structured error to the client
       return { error: 'Failed to list calendar events. The access token might be invalid or expired.' };
     }
   }
 );
 
-
-// Schema for creating a calendar event
-export const CreateEventInputSchema = z.object({
+const CreateEventInputSchema = z.object({
   accessToken: z.string().describe('The user\'s Google OAuth access token.'),
   summary: z.string().describe('The title or summary of the event.'),
   description: z.string().optional().describe('A description of the event.'),
   startTime: z.string().datetime().describe('The start time of the event in ISO 8601 format.'),
   endTime: z.string().datetime().describe('The end time of the event in ISO 8601 format.'),
 });
-export type CreateEventInput = z.infer<typeof CreateEventInputSchema>;
 
-
-export const createCalendarEvent = ai.defineTool(
+const createEventTool = ai.defineTool(
   {
-    name: 'createCalendarEvent',
+    name: 'createEventTool',
     description: 'Create a new event on the user\'s primary Google Calendar.',
     inputSchema: CreateEventInputSchema,
     outputSchema: z.any(),
@@ -85,7 +82,7 @@ export const createCalendarEvent = ai.defineTool(
         description,
         start: {
           dateTime: startTime,
-          timeZone: 'UTC', // Or detect user's timezone
+          timeZone: 'UTC', // Consider making this dynamic in the future
         },
         end: {
           dateTime: endTime,
@@ -104,7 +101,24 @@ export const createCalendarEvent = ai.defineTool(
   }
 );
 
-// A simple flow to demonstrate usage (optional, can be removed)
+
+// --- Exported Server Actions (Safe for 'use server') ---
+
+export type ListEventsInput = z.infer<typeof ListEventsInputSchema>;
+export type CreateEventInput = z.infer<typeof CreateEventInputSchema>;
+
+
+export async function listCalendarEvents(input: ListEventsInput) {
+  return await listEventsTool(input);
+}
+
+export async function createCalendarEvent(input: CreateEventInput) {
+  return await createEventTool(input);
+}
+
+
+// This flow is for a conversational agent and is not currently used by the UI directly.
+// It remains as an example of how to use tools in a chat-like flow.
 const calendarFlow = ai.defineFlow(
     {
         name: 'calendarFlow',
@@ -114,21 +128,16 @@ const calendarFlow = ai.defineFlow(
     async ({ prompt, accessToken }) => {
         const llmResponse = await ai.generate({
             prompt: prompt,
-            tools: [listCalendarEvents, createCalendarEvent],
-            config: {
-                // Pass the access token to the tool through custom context
-                // This is a conceptual example; direct context passing like this isn't standard.
-                // The accessToken will be passed explicitly in the tool input from the client.
-            },
+            tools: [listEventsTool, createEventTool],
             system: "You are a helpful assistant with access to the user's Google Calendar. Use the provided tools to list events or create new ones when asked."
         });
 
-        // If the model wants to call a tool, it will be in the response.
-        // For this example, we're just showing the setup and returning the text.
+        // This is a simplified response. A real implementation would handle tool calls.
         return llmResponse.text;
     }
 );
 
+// Wrapper for the conversational flow
 export async function calendar(prompt: string, accessToken: string): Promise<string> {
     return calendarFlow({ prompt, accessToken });
 }
