@@ -40,8 +40,8 @@ const chatFlow = ai.defineFlow(
         outputSchema: z.string(),
     },
     async (prompt) => {
-        const {output} = await chatPrompt(prompt);
-        return output as string;
+        const response = await chatPrompt(prompt);
+        return response.text();
     }
 );
 
