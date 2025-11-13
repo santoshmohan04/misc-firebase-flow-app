@@ -10,16 +10,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import type { ChartConfig } from "@/components/ui/chart";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -50,22 +42,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-const chartData = [
-  { month: "January", messages: 186 },
-  { month: "February", messages: 305 },
-  { month: "March", messages: 237 },
-  { month: "April", messages: 273 },
-  { month: "May", messages: 209 },
-  { month: "June", messages: 214 },
-];
-
-const chartConfig = {
-  messages: {
-    label: "AI Chat Usage",
-    color: "hsl(var(--primary))",
-  },
-} satisfies ChartConfig;
 
 type Event = {
   id: number;
@@ -104,7 +80,6 @@ const initialEvents: Event[] = [
 export default function DashboardPage() {
   const [currentDate, setCurrentDate] = useState("");
   const [currentTime, setCurrentTime] = useState("");
-  const [date, setDate] = useState<Date | undefined>(new Date());
   const [events, setEvents] = useState<Event[]>(initialEvents);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
@@ -318,34 +293,6 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 mt-4">
-        <Card className="col-span-1 lg:col-span-4">
-          <CardHeader>
-            <CardTitle>AI Chat Usage</CardTitle>
-            <CardDescription>
-              A chart showing your AI message usage over time. (Sample Data)
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pl-2">
-            <ChartContainer config={chartConfig} className="h-[250px] w-full">
-              <BarChart accessibilityLayer data={chartData}>
-                <CartesianGrid vertical={false} />
-                <XAxis
-                  dataKey="month"
-                  tickLine={false}
-                  tickMargin={10}
-                  axisLine={false}
-                  tickFormatter={(value) => value.slice(0, 3)}
-                />
-                <YAxis />
-                <ChartTooltip
-                  cursor={false}
-                  content={<ChartTooltipContent />}
-                />
-                <Bar dataKey="messages" fill="var(--color-messages)" radius={8} />
-              </BarChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
         <Card className="col-span-1 lg:col-span-3">
           <CardHeader>
             <CardTitle>Key Features</CardTitle>
