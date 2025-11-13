@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -82,11 +83,20 @@ export default function AuthenticationPage() {
 
   const handleGoogleSignIn = () => {
     const provider = new GoogleAuthProvider();
+    // Add the scope for Google Calendar API
+    provider.addScope('https://www.googleapis.com/auth/calendar');
+
     signInWithPopup(auth, provider)
       .then((result) => {
         // This gives you a Google Access Token. You can use it to access the Google API.
         const credential = GoogleAuthProvider.credentialFromResult(result);
         const token = credential?.accessToken;
+        
+        // Store the token to use it in other parts of the app
+        if (token) {
+            sessionStorage.setItem('google-access-token', token);
+        }
+
         // The signed-in user info.
         const user = result.user;
         router.push("/dashboard");

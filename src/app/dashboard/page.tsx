@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Bell, Database, RadioTower, Clock, Calendar as CalendarIcon, Plus, MoreHorizontal, Trash, Edit } from "lucide-react";
+import { ArrowRight, Bell, Database, RadioTower, Clock, Calendar as CalendarIcon, Plus, MoreHorizontal, Trash, Edit, Loader2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -23,76 +23,48 @@ import {
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { listCalendarEvents, createCalendarEvent } from "@/ai/flows/calendar-flow";
+import { useUser } from "@/firebase";
 
-type Event = {
-  id: number;
-  time: string;
-  title: string;
-  category: string;
+type GoogleCalendarEvent = {
+  id: string;
+  summary: string;
+  description?: string;
+  start: { dateTime: string };
+  end: { dateTime: string };
+  organizer: { email: string, self: boolean };
+  attendees?: { email: string, responseStatus: string }[];
 };
 
-const initialEvents: Event[] = [
-  {
-    id: 1,
-    time: "10:00",
-    title: "Team Standup",
-    category: "Work",
-  },
-  {
-    id: 2,
-    time: "12:30",
-    title: "Lunch with Sarah",
-    category: "Personal",
-  },
-  {
-    id: 3,
-    time: "14:00",
-    title: "Project Alpha Kick-off",
-    category: "Work",
-  },
-  {
-    id: 4,
-    time: "18:00",
-    title: "Gym Session",
-    category: "Health",
-  },
-];
-
 export default function DashboardPage() {
+  const { user } = useUser();
+  const { toast } = useToast();
   const [currentDate, setCurrentDate] = useState("");
   const [currentTime, setCurrentTime] = useState("");
-  const [events, setEvents] = useState<Event[]>(initialEvents);
+  const [events, setEvents] = useState<GoogleCalendarEvent[]>([]);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
 
   const [eventForm, setEventForm] = useState({
-    time: "",
-    title: "",
-    category: "",
+    summary: "",
+    description: "",
+    startTime: "",
+    endTime: "",
   });
 
   useEffect(() => {
+    const token = sessionStorage.getItem('google-access-token');
+    if (token) {
+      setAccessToken(token);
+    }
+
     const date = new Date();
-    setCurrentDate(date.toLocaleDateString());
+    setCurrentDate(date.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
     setCurrentTime(date.toLocaleTimeString());
 
     const timer = setInterval(() => {
@@ -101,52 +73,81 @@ export default function DashboardPage() {
 
     return () => clearInterval(timer);
   }, []);
+  
+  useEffect(() => {
+    const fetchEvents = async () => {
+        if (!accessToken) return;
+        setIsLoadingEvents(true);
+        try {
+            const fetchedEvents = await listCalendarEvents({ accessToken, maxResults: 10 });
+            if (fetchedEvents && !fetchedEvents.error) {
+              setEvents(fetchedEvents);
+            } else {
+              toast({
+                title: "Error fetching calendar events",
+                description: fetchedEvents.error || "Please try signing in again.",
+                variant: "destructive"
+              });
+              if(fetchedEvents.error?.includes('token')){
+                sessionStorage.removeItem('google-access-token');
+                setAccessToken(null);
+              }
+            }
+        } catch (error) {
+            console.error(error);
+            toast({ title: "Error", description: "Could not fetch calendar events.", variant: "destructive" });
+        } finally {
+            setIsLoadingEvents(false);
+        }
+    };
 
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    fetchEvents();
+  }, [accessToken, toast]);
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
     setEventForm((prev) => ({ ...prev, [id]: value }));
   };
 
-  const handleAddEvent = () => {
-    setEditingEvent(null);
-    setEventForm({ time: "", title: "", category: "" });
-    setIsDialogOpen(true);
-  };
-
-  const handleEditEvent = (event: Event) => {
-    setEditingEvent(event);
+  const handleAddEventClick = () => {
+    const now = new Date();
+    const start = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    const end = new Date(now.getTime() - now.getTimezoneOffset() * 60000 + 3600000).toISOString().slice(0, 16);
+    
     setEventForm({
-      time: event.time,
-      title: event.title,
-      category: event.category,
+      summary: "",
+      description: "",
+      startTime: start,
+      endTime: end,
     });
     setIsDialogOpen(true);
   };
 
-  const handleDeleteEvent = (eventId: number) => {
-    setEvents(events.filter((event) => event.id !== eventId));
-  };
-
-  const handleSaveEvent = () => {
-    if (editingEvent) {
-      // Update existing event
-      setEvents(
-        events.map((event) =>
-          event.id === editingEvent.id
-            ? { ...event, ...eventForm }
-            : event
-        )
-      );
-    } else {
-      // Add new event
-      const newEvent: Event = {
-        id: Date.now(),
-        ...eventForm,
-      };
-      setEvents([...events, newEvent]);
+  const handleSaveEvent = async () => {
+    if (!accessToken || !eventForm.summary || !eventForm.startTime || !eventForm.endTime) {
+      toast({ title: "Missing Information", description: "Please fill out all required fields.", variant: "destructive" });
+      return;
     }
+    
+    try {
+      const newEvent = await createCalendarEvent({
+        accessToken,
+        summary: eventForm.summary,
+        description: eventForm.description,
+        startTime: new Date(eventForm.startTime).toISOString(),
+        endTime: new Date(eventForm.endTime).toISOString(),
+      });
+      if(newEvent && !newEvent.error) {
+        setEvents(prev => [...prev, newEvent].sort((a, b) => new Date(a.start.dateTime).getTime() - new Date(b.start.dateTime).getTime()));
+        toast({ title: "Success", description: "Event created successfully!" });
+      } else {
+         toast({ title: "Error creating event", description: newEvent.error, variant: "destructive" });
+      }
+    } catch(e: any) {
+       toast({ title: "Error", description: e.message || "Failed to create event.", variant: "destructive" });
+    }
+
     setIsDialogOpen(false);
-    setEditingEvent(null);
   };
 
   const features = [
@@ -164,14 +165,9 @@ export default function DashboardPage() {
     },
   ];
 
-  const formatTime = (timeString: string) => {
-    if (!timeString) return '';
-    const [hours, minutes] = timeString.split(':');
-    const h = parseInt(hours, 10);
-    const m = parseInt(minutes, 10);
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    const formattedHours = h % 12 || 12;
-    return `${formattedHours}:${minutes.padStart(2, '0')} ${ampm}`;
+  const formatEventTime = (isoString: string) => {
+    if (!isoString) return '';
+    return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
@@ -203,91 +199,73 @@ export default function DashboardPage() {
         <Card className="col-span-1 md:col-span-2">
            <CardHeader className="flex flex-row items-center justify-between">
              <div>
-                <CardTitle>Calendar & Events</CardTitle>
-                <CardDescription>Your schedule for today.</CardDescription>
+                <CardTitle>Google Calendar</CardTitle>
+                <CardDescription>Your upcoming events.</CardDescription>
              </div>
-             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm" onClick={handleAddEvent}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Event
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>{editingEvent ? 'Edit Event' : 'Add New Event'}</DialogTitle>
-                    <DialogDescription>
-                      {editingEvent ? 'Update the details for your event.' : 'Fill in the details for your new event.'}
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="time" className="text-right">Time</Label>
-                      <Input id="time" type="time" value={eventForm.time} onChange={handleFormChange} className="col-span-3" />
+             {accessToken && (
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" onClick={handleAddEventClick}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Event
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add New Event to Google Calendar</DialogTitle>
+                      <DialogDescription>
+                        Fill in the details for your new event.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="summary" className="text-right">Title</Label>
+                        <Input id="summary" value={eventForm.summary} onChange={handleFormChange} className="col-span-3" />
+                      </div>
+                       <div className="grid grid-cols-4 items-start gap-4">
+                        <Label htmlFor="description" className="text-right pt-2">Description</Label>
+                        <Textarea id="description" value={eventForm.description} onChange={handleFormChange} className="col-span-3" />
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="startTime" className="text-right">Start Time</Label>
+                        <Input id="startTime" type="datetime-local" value={eventForm.startTime} onChange={handleFormChange} className="col-span-3" />
+                      </div>
+                       <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="endTime" className="text-right">End Time</Label>
+                        <Input id="endTime" type="datetime-local" value={eventForm.endTime} onChange={handleFormChange} className="col-span-3" />
+                      </div>
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="title" className="text-right">Title</Label>
-                      <Input id="title" value={eventForm.title} onChange={handleFormChange} className="col-span-3" />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="category" className="text-right">Category</Label>
-                      <Input id="category" value={eventForm.category} onChange={handleFormChange} className="col-span-3" />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <DialogClose asChild>
-                        <Button variant="outline">Cancel</Button>
-                    </DialogClose>
-                    <Button onClick={handleSaveEvent}>Save</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+                    <DialogFooter>
+                      <DialogClose asChild>
+                          <Button variant="outline">Cancel</Button>
+                      </DialogClose>
+                      <Button onClick={handleSaveEvent}>Save</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+             )}
            </CardHeader>
            <CardContent>
-             {events.sort((a,b) => a.time.localeCompare(b.time)).map(event => (
+              {!accessToken && user?.providerData.some(p => p.providerId === 'google.com') && (
+                <div className="text-center text-muted-foreground">
+                  <p>Please sign in again to grant calendar access.</p>
+                </div>
+              )}
+               {!user?.providerData.some(p => p.providerId === 'google.com') && (
+                <div className="text-center text-muted-foreground">
+                  <p>Sign in with Google to view your calendar.</p>
+                </div>
+              )}
+             {isLoadingEvents && <div className="flex justify-center items-center py-4"><Loader2 className="h-6 w-6 animate-spin" /></div>}
+             {!isLoadingEvents && events.map(event => (
                <div key={event.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
                   <div>
-                    <p className="font-semibold">{formatTime(event.time)} - {event.title}</p>
-                    <Badge variant="outline">{event.category}</Badge>
+                    <p className="font-semibold">{formatEventTime(event.start.dateTime)} - {event.summary}</p>
+                    {event.description && <p className="text-sm text-muted-foreground">{event.description}</p>}
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem onClick={() => handleEditEvent(event)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit
-                      </DropdownMenuItem>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                           <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">
-                             <Trash className="mr-2 h-4 w-4" />
-                             Delete
-                           </DropdownMenuItem>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This action cannot be undone. This will permanently delete this event.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDeleteEvent(event.id)} className="bg-destructive hover:bg-destructive/90">
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                </div>
              ))}
-             {events.length === 0 && <p className="text-muted-foreground text-sm">No events scheduled for today.</p>}
+             {!isLoadingEvents && accessToken && events.length === 0 && <p className="text-muted-foreground text-sm">No upcoming events found for today.</p>}
            </CardContent>
         </Card>
       </div>
@@ -321,6 +299,19 @@ export default function DashboardPage() {
                 <ArrowRight className="h-5 w-5 text-muted-foreground" />
               </Link>
             ))}
+          </CardContent>
+        </Card>
+        <Card className="lg:col-span-4 col-span-1">
+          <CardHeader>
+            <CardTitle>AI Chat Usage</CardTitle>
+            <CardDescription>
+              This is a sample chart.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pl-2">
+           <div className="h-[250px] w-full flex items-center justify-center text-muted-foreground">
+              Chart data would be displayed here.
+            </div>
           </CardContent>
         </Card>
       </div>
