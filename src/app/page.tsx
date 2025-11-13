@@ -1,5 +1,12 @@
+"use client";
+
 import Link from "next/link";
 import { Flame } from "lucide-react";
+import { useForm, SubmitHandler } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -12,8 +19,78 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { useAuth, useUser } from "@/firebase";
+import {
+  initiateEmailSignIn,
+  initiateEmailSignUp,
+} from "@/firebase/non-blocking-login";
+import { getAuth, GoogleAuthProvider, signInWithRedirect } from "firebase/auth";
+
+const signInSchema = z.object({
+  email: z.string().email({ message: "Invalid email address." }),
+  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+});
+
+const signUpSchema = z.object({
+  fullName: z.string().min(2, { message: "Full name must be at least 2 characters." }),
+  email: z.string().email({ message: "Invalid email address." }),
+  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+});
+
+type SignInFormValues = z.infer<typeof signInSchema>;
+type SignUpFormValues = z.infer<typeof signUpSchema>;
 
 export default function AuthenticationPage() {
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
+  const router = useRouter();
+
+  const signInForm = useForm<SignInFormValues>({
+    resolver: zodResolver(signInSchema),
+    defaultValues: { email: "", password: "" },
+  });
+
+  const signUpForm = useForm<SignUpFormValues>({
+    resolver: zodResolver(signUpSchema),
+    defaultValues: { fullName: "", email: "", password: "" },
+  });
+
+  useEffect(() => {
+    if (!isUserLoading && user) {
+      router.push("/dashboard");
+    }
+  }, [user, isUserLoading, router]);
+
+  const onSignInSubmit: SubmitHandler<SignInFormValues> = (data) => {
+    initiateEmailSignIn(auth, data.email, data.password);
+  };
+
+  const onSignUpSubmit: SubmitHandler<SignUpFormValues> = (data) => {
+    initiateEmailSignUp(auth, data.email, data.password);
+  };
+
+  const handleGoogleSignIn = () => {
+    const auth = getAuth();
+    const provider = new GoogleAuthProvider();
+    signInWithRedirect(auth, provider);
+  };
+  
+  if (isUserLoading || user) {
+    return (
+      <div className="flex min-h-screen w-full flex-col items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
   return (
     <main className="flex min-h-screen w-full flex-col items-center justify-center p-4">
       <div className="mb-8 flex flex-col items-center text-center">
@@ -42,31 +119,55 @@ export default function AuthenticationPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="m@example.com"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center">
-                  <Label htmlFor="password">Password</Label>
-                  <Link
-                    href="#"
-                    className="ml-auto inline-block text-sm underline"
-                  >
-                    Forgot your password?
-                  </Link>
-                </div>
-                <Input id="password" type="password" required />
-              </div>
-              <Link href="/dashboard" className="w-full block">
-                <Button className="w-full">Sign In</Button>
-              </Link>
-              <Button variant="outline" className="w-full">
+              <Form {...signInForm}>
+                <form
+                  onSubmit={signInForm.handleSubmit(onSignInSubmit)}
+                  className="space-y-4"
+                >
+                  <FormField
+                    control={signInForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="email"
+                            placeholder="m@example.com"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={signInForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center">
+                          <FormLabel>Password</FormLabel>
+                          <Link
+                            href="#"
+                            className="ml-auto inline-block text-sm underline"
+                          >
+                            Forgot your password?
+                          </Link>
+                        </div>
+                        <FormControl>
+                          <Input type="password" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" className="w-full">
+                    Sign In
+                  </Button>
+                </form>
+              </Form>
+              <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
                 Sign in with Google
               </Button>
             </CardContent>
@@ -81,26 +182,59 @@ export default function AuthenticationPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="first-name">Full Name</Label>
-                <Input id="first-name" placeholder="Max Robinson" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email-signup">Email</Label>
-                <Input
-                  id="email-signup"
-                  type="email"
-                  placeholder="m@example.com"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password-signup">Password</Label>
-                <Input id="password-signup" type="password" required />
-              </div>
-              <Link href="/dashboard" className="w-full block">
-                <Button className="w-full">Create an account</Button>
-              </Link>
+              <Form {...signUpForm}>
+                <form
+                  onSubmit={signUpForm.handleSubmit(onSignUpSubmit)}
+                  className="space-y-4"
+                >
+                  <FormField
+                    control={signUpForm.control}
+                    name="fullName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Full Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Max Robinson" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={signUpForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="email"
+                            placeholder="m@example.com"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={signUpForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" className="w-full">
+                    Create an account
+                  </Button>
+                </form>
+              </Form>
             </CardContent>
           </Card>
         </TabsContent>

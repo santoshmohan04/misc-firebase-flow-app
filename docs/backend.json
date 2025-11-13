@@ -43,12 +43,33 @@
         "id",
         "email"
       ]
+    },
+    "Note": {
+      "title": "Note",
+      "type": "object",
+      "description": "A note created by a user.",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The title of the note."
+        },
+        "content": {
+          "type": "string",
+          "description": "The content of the note."
+        },
+        "createdAt": {
+          "type": "object",
+          "description": "Timestamp of when the note was created."
+        }
+      },
+      "required": ["title", "content", "createdAt"]
     }
   },
   "auth": {
     "providers": [
       "password",
-      "anonymous"
+      "anonymous",
+      "google.com"
     ]
   },
   "firestore": {
@@ -65,6 +86,26 @@
             {
               "name": "userId",
               "description": "The unique identifier for the user, matching the Firebase Authentication UID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/notes/{noteId}",
+        "definition": {
+          "entityName": "Note",
+          "schema": {
+            "$ref": "#/backend/entities/Note"
+          },
+          "description": "Stores notes for a specific user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "noteId",
+              "description": "The unique identifier for the note."
             }
           ]
         }

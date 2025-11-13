@@ -16,6 +16,14 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
     /**
      * @description Manages user profile information. Only the user with the matching userId can access their own data.
      * @path /users/{userId}
@@ -25,24 +33,11 @@ service cloud.firestore {
      * @principle Enforces document ownership.
      */
     match /users/{userId} {
-      function isSignedIn() {
-        return request.auth != null;
+      allow read, write: if isOwner(userId);
+
+      match /notes/{noteId} {
+        allow read, write: if isOwner(userId);
       }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if false;
-
-      allow create: if isOwner(userId) && request.resource.data.id == request.auth.uid;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
     }
   }
 }

@@ -31,52 +31,48 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
+import { collection, serverTimestamp } from "firebase/firestore";
+import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 type Note = {
   id: string;
   title: string;
   content: string;
-  createdAt: string;
+  createdAt: {
+    seconds: number;
+    nanoseconds: number;
+  } | null;
 };
 
-const initialNotes: Note[] = [
-  {
-    id: "1",
-    title: "Project Kickoff",
-    content: "Initial meeting with the team to discuss project goals.",
-    createdAt: new Date("2023-10-01T09:00:00Z").toLocaleDateString(),
-  },
-  {
-    id: "2",
-    title: "UI/UX Design",
-    content: "Wireframing and prototyping session for the new dashboard.",
-    createdAt: new Date("2023-10-05T14:30:00Z").toLocaleDateString(),
-  },
-  {
-    id: "3",
-    title: "Backend Development",
-    content: "Setting up Firebase Authentication and Firestore rules.",
-    createdAt: new Date("2023-10-10T11:00:00Z").toLocaleDateString(),
-  },
-];
-
 export default function FirestorePage() {
-  const [notes, setNotes] = useState<Note[]>(initialNotes);
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const notesCollectionRef = useMemoFirebase(
+    () => (user ? collection(firestore, "users", user.uid, "notes") : null),
+    [user, firestore]
+  );
+  const { data: notes, isLoading } = useCollection<Note>(notesCollectionRef);
   const [newNoteTitle, setNewNoteTitle] = useState("");
   const [newNoteContent, setNewNoteContent] = useState("");
 
   const handleAddNote = () => {
-    if (!newNoteTitle || !newNoteContent) return;
-    const newNote: Note = {
-      id: (notes.length + 1).toString(),
+    if (!newNoteTitle || !newNoteContent || !notesCollectionRef) return;
+    const newNote = {
       title: newNoteTitle,
       content: newNoteContent,
-      createdAt: new Date().toLocaleDateString(),
+      createdAt: serverTimestamp(),
     };
-    setNotes([newNote, ...notes]);
+    addDocumentNonBlocking(notesCollectionRef, newNote);
     setNewNoteTitle("");
     setNewNoteContent("");
   };
+
+  const formatDate = (timestamp: Note['createdAt']) => {
+    if (!timestamp) return "Just now";
+    const date = new Date(timestamp.seconds * 1000);
+    return date.toLocaleDateString();
+  }
 
   return (
     <>
@@ -125,7 +121,9 @@ export default function FirestorePage() {
             </div>
             <SheetFooter>
               <SheetClose asChild>
-                <Button type="submit" onClick={handleAddNote}>Save note</Button>
+                <Button type="submit" onClick={handleAddNote}>
+                  Save note
+                </Button>
               </SheetClose>
             </SheetFooter>
           </SheetContent>
@@ -140,26 +138,36 @@ export default function FirestorePage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Content</TableHead>
-                <TableHead className="hidden md:table-cell">Created At</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {notes.map((note) => (
-                <TableRow key={note.id}>
-                  <TableCell className="font-medium">{note.title}</TableCell>
-                  <TableCell>{note.content}</TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {note.createdAt}
-                  </TableCell>
+          {isLoading && <p>Loading notes...</p>}
+          {!isLoading && (!notes || notes.length === 0) && (
+            <div className="text-center text-muted-foreground py-8">
+                You haven&apos;t added any notes yet.
+            </div>
+          )}
+          {!isLoading && notes && notes.length > 0 && (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Content</TableHead>
+                  <TableHead className="hidden md:table-cell">
+                    Created At
+                  </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {notes.map((note) => (
+                  <TableRow key={note.id}>
+                    <TableCell className="font-medium">{note.title}</TableCell>
+                    <TableCell>{note.content}</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {formatDate(note.createdAt)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </>

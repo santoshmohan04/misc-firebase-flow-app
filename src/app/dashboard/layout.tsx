@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   Bell,
@@ -13,6 +13,8 @@ import {
   RadioTower,
   User,
 } from "lucide-react";
+import { useEffect } from "react";
+
 
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +34,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
+import { useAuth, useUser } from "@/firebase";
 
 export default function DashboardLayout({
   children,
@@ -39,7 +42,33 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const avatar = PlaceHolderImages.find((img) => img.id === "user-avatar");
+  const router = useRouter();
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
+  const avatarPlaceholder = PlaceHolderImages.find((img) => img.id === "user-avatar");
+
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push("/");
+    }
+  }, [user, isUserLoading, router]);
+
+  const handleLogout = () => {
+    auth.signOut();
+  };
+  
+  const getAvatar = () => {
+    if (user?.photoURL) {
+      return {
+        imageUrl: user.photoURL,
+        description: user.displayName || 'User avatar',
+        imageHint: 'person portrait'
+      }
+    }
+    return avatarPlaceholder;
+  }
+  
+  const avatar = getAvatar();
 
   const navItems = [
     { href: "/dashboard", icon: Home, label: "Dashboard" },
@@ -78,6 +107,14 @@ export default function DashboardLayout({
       ))}
     </nav>
   );
+  
+  if (isUserLoading || !user) {
+    return (
+      <div className="flex min-h-screen w-full flex-col items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
@@ -175,17 +212,15 @@ export default function DashboardLayout({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuLabel>{user.displayName || user.email}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem>Profile</DropdownMenuItem>
               <DropdownMenuItem>Settings</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <Link href="/">
-                <DropdownMenuItem>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </Link>
+              <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </header>
