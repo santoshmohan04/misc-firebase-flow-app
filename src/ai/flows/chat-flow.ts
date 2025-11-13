@@ -41,7 +41,7 @@ const chatFlow = ai.defineFlow(
     },
     async (prompt) => {
         const response = await chatPrompt(prompt);
-        return response.text();
+        return response.text;
     }
 );
 
