@@ -71,6 +71,15 @@ export function Todos() {
     deleteDocumentNonBlocking(todoDocRef);
   };
 
+  const handleClearCompleted = () => {
+    if (!todos || !todosCollectionRef) return;
+    const completedTodos = todos.filter(todo => todo.completed);
+    completedTodos.forEach(todo => {
+        const todoDocRef = doc(todosCollectionRef, todo.id);
+        deleteDocumentNonBlocking(todoDocRef);
+    });
+  };
+
   return (
     <Card className="col-span-1 lg:col-span-4">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -94,7 +103,9 @@ export function Todos() {
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-                <DropdownMenuItem>Clear completed</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleClearCompleted} disabled={!todos?.some(t => t.completed)}>
+                    Clear completed
+                </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
       </CardHeader>
