@@ -33,10 +33,10 @@ service cloud.firestore {
      * @principle Enforces document ownership.
      */
     match /users/{userId} {
-      allow read, write: if isOwner(userId);
+      allow read, write: if isSignedIn() && isOwner(userId);
 
       match /notes/{noteId} {
-        allow read, write: if isOwner(userId);
+        allow read, write: if isSignedIn() && isOwner(userId);
       }
     }
   }

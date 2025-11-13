@@ -31,6 +31,7 @@ import { useAuth, useUser } from "@/firebase";
 import {
   initiateEmailSignIn,
   initiateEmailSignUp,
+  initiateAnonymousSignIn,
 } from "@/firebase/non-blocking-login";
 import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -103,6 +104,10 @@ export default function AuthenticationPage() {
     const auth = getAuth();
     const provider = new GoogleAuthProvider();
     signInWithRedirect(auth, provider);
+  };
+
+  const handleAnonymousSignIn = () => {
+    initiateAnonymousSignIn(auth);
   };
   
   if (isUserLoading || user) {
@@ -189,9 +194,24 @@ export default function AuthenticationPage() {
                   </Button>
                 </form>
               </Form>
-              <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
-                Sign in with Google
-              </Button>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+                  Google
+                </Button>
+                 <Button variant="outline" className="w-full" onClick={handleAnonymousSignIn}>
+                  Guest
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
