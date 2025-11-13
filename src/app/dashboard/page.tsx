@@ -77,25 +77,25 @@ type Event = {
 const initialEvents: Event[] = [
   {
     id: 1,
-    time: "10:00 AM",
+    time: "10:00",
     title: "Team Standup",
     category: "Work",
   },
   {
     id: 2,
-    time: "12:30 PM",
+    time: "12:30",
     title: "Lunch with Sarah",
     category: "Personal",
   },
   {
     id: 3,
-    time: "2:00 PM",
+    time: "14:00",
     title: "Project Alpha Kick-off",
     category: "Work",
   },
   {
     id: 4,
-    time: "6:00 PM",
+    time: "18:00",
     title: "Gym Session",
     category: "Health",
   },
@@ -195,6 +195,16 @@ export default function DashboardPage() {
     },
   ];
 
+  const formatTime = (timeString: string) => {
+    if (!timeString) return '';
+    const [hours, minutes] = timeString.split(':');
+    const h = parseInt(hours, 10);
+    const m = parseInt(minutes, 10);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const formattedHours = h % 12 || 12;
+    return `${formattedHours}:${minutes.padStart(2, '0')} ${ampm}`;
+  };
+
   return (
     <>
       <div className="flex items-center justify-between">
@@ -244,7 +254,7 @@ export default function DashboardPage() {
                   <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="time" className="text-right">Time</Label>
-                      <Input id="time" value={eventForm.time} onChange={handleFormChange} className="col-span-3" />
+                      <Input id="time" type="time" value={eventForm.time} onChange={handleFormChange} className="col-span-3" />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="title" className="text-right">Title</Label>
@@ -276,10 +286,10 @@ export default function DashboardPage() {
              <div className="space-y-4">
                 <h3 className="font-semibold text-md">Upcoming Events</h3>
                 <div className="space-y-3">
-                  {events.map((event) => (
+                  {events.sort((a,b) => a.time.localeCompare(b.time)).map((event) => (
                     <div key={event.id} className="flex items-start justify-between gap-3">
                         <div className="flex items-start gap-3">
-                            <div className="text-sm text-muted-foreground">{event.time}</div>
+                            <div className="text-sm text-muted-foreground">{formatTime(event.time)}</div>
                             <div className="flex flex-col">
                                 <span className="font-medium">{event.title}</span>
                                 <Badge variant="secondary" className="w-fit mt-1">{event.category}</Badge>
@@ -379,5 +389,3 @@ export default function DashboardPage() {
     </>
   );
 }
-
-    
