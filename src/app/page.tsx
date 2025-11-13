@@ -83,10 +83,9 @@ export default function AuthenticationPage() {
       })
       .catch((error) => {
         // Handle Errors here.
-        console.error("Google sign-in error", error);
         toast({
-          title: "Google Sign-In Failed",
-          description: error.message,
+          title: "Google Sign-In Error",
+          description: "Please make sure Google Sign-In is enabled in your Firebase project settings.",
           variant: "destructive",
         });
       });
