@@ -33,7 +33,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { useAuth, useUser } from "@/firebase";
 
@@ -141,15 +141,20 @@ export default function DashboardLayout({
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="flex flex-col">
-              <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-                <Link
-                  href="/"
-                  className="flex items-center gap-2 font-semibold"
-                >
-                  <Flame className="h-6 w-6 text-primary" />
-                  <span className="">FirebaseFlow</span>
-                </Link>
-              </div>
+              <SheetHeader className="text-left">
+                  <SheetTitle>
+                    <Link
+                      href="/"
+                      className="flex items-center gap-2 font-semibold"
+                    >
+                      <Flame className="h-6 w-6 text-primary" />
+                      <span className="">FirebaseFlow</span>
+                    </Link>
+                  </SheetTitle>
+                  <SheetDescription>
+                    Navigate through the application sections.
+                  </SheetDescription>
+              </SheetHeader>
               <NavLinks isMobile />
             </SheetContent>
           </Sheet>
