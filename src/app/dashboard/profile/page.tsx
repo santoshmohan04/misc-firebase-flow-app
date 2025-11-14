@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useStorage } from '@/firebase';
 import { updateProfile } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,7 @@ import type { StorageReference } from 'firebase/storage';
 export default function ProfilePage() {
   const { user } = useUser();
   const auth = useAuth();
+  const storage = useStorage();
   const { toast } = useToast();
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [isSaving, setIsSaving] = useState(false);
@@ -27,13 +28,13 @@ export default function ProfilePage() {
   const avatarPlaceholder = PlaceHolderImages.find((img) => img.id === 'user-avatar');
 
   useEffect(() => {
-    if (user) {
+    if (user && storage) {
       setIsListingFiles(true);
-      listUserFiles(user.uid)
+      listUserFiles(storage, user.uid)
         .then(setUploadedFiles)
         .finally(() => setIsListingFiles(false));
     }
-  }, [user]);
+  }, [user, storage]);
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +62,7 @@ export default function ProfilePage() {
   
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user || !auth.currentUser) {
+    if (!file || !user || !auth.currentUser || !storage) {
       return;
     }
 
@@ -71,13 +72,13 @@ export default function ProfilePage() {
         throw new Error('Image file is too large (max 1MB).');
       }
 
-      const photoURL = await uploadProfileImage(file, user.uid);
+      const photoURL = await uploadProfileImage(storage, file, user.uid);
       await updateProfile(auth.currentUser, { photoURL });
       
       await auth.currentUser.getIdToken(true);
 
       // Refresh the file list
-      listUserFiles(user.uid).then(setUploadedFiles);
+      listUserFiles(storage, user.uid).then(setUploadedFiles);
 
       toast({
         title: "Success",
