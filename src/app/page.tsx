@@ -33,6 +33,7 @@ import {
   initiateEmailSignIn,
   initiateEmailSignUp,
 } from "@/firebase/non-blocking-login";
+import { useToast } from "@/hooks/use-toast";
 
 const signInSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -52,6 +53,7 @@ export default function AuthenticationPage() {
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
+  const { toast } = useToast();
 
   const signInForm = useForm<SignInFormValues>({
     resolver: zodResolver(signInSchema),
