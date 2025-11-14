@@ -32,10 +32,7 @@ import { useAuth, useUser } from "@/firebase";
 import {
   initiateEmailSignIn,
   initiateEmailSignUp,
-  initiateAnonymousSignIn,
 } from "@/firebase/non-blocking-login";
-import { GoogleAuthProvider, signInWithRedirect, getRedirectResult, AuthError } from "firebase/auth";
-import { useToast } from "@/hooks/use-toast";
 
 const signInSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -55,7 +52,6 @@ export default function AuthenticationPage() {
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
-  const { toast } = useToast();
 
   const signInForm = useForm<SignInFormValues>({
     resolver: zodResolver(signInSchema),
@@ -73,24 +69,6 @@ export default function AuthenticationPage() {
     }
   }, [user, isUserLoading, router]);
 
-  useEffect(() => {
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result) {
-          // This is the signed-in user
-          const user = result.user;
-          router.push("/dashboard");
-        }
-      })
-      .catch((error: AuthError) => {
-        // Handle Errors here.
-        toast({
-          title: "Google Sign-In Error",
-          description: error.message || "An unexpected error occurred after redirect. Please try again.",
-          variant: "destructive",
-        });
-      });
-  }, [auth, router, toast]);
 
   const onSignInSubmit: SubmitHandler<SignInFormValues> = (data) => {
     initiateEmailSignIn(auth, data.email, data.password);
@@ -100,15 +78,6 @@ export default function AuthenticationPage() {
     initiateEmailSignUp(auth, data.email, data.password);
   };
 
-  const handleGoogleSignIn = () => {
-    const provider = new GoogleAuthProvider();
-    signInWithRedirect(auth, provider);
-  };
-
-  const handleAnonymousSignIn = () => {
-    initiateAnonymousSignIn(auth);
-  };
-  
   if (isUserLoading || user) {
     return (
       <div className="flex min-h-screen w-full flex-col items-center justify-center">
@@ -193,24 +162,6 @@ export default function AuthenticationPage() {
                   </Button>
                 </form>
               </Form>
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
-                    Or continue with
-                  </span>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
-                  Google
-                </Button>
-                 <Button variant="outline" className="w-full" onClick={handleAnonymousSignIn}>
-                  Guest
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
