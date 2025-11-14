@@ -73,11 +73,11 @@ export default function AuthenticationPage() {
 
 
   const onSignInSubmit: SubmitHandler<SignInFormValues> = (data) => {
-    initiateEmailSignIn(auth, data.email, data.password);
+    initiateEmailSignIn(auth, data.email, data.password, toast);
   };
 
   const onSignUpSubmit: SubmitHandler<SignUpFormValues> = (data) => {
-    initiateEmailSignUp(auth, data.email, data.password);
+    initiateEmailSignUp(auth, data.email, data.password, toast);
   };
 
   if (isUserLoading || user) {
