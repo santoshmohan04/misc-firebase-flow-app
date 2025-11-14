@@ -11,7 +11,8 @@ import { getStorage, connectStorageEmulator } from 'firebase/storage';
 function getEmulatorHost(service: 'auth' | 'firestore' | 'storage'): string | undefined {
   switch (service) {
     case 'auth':
-      return process.env.NEXT_PUBLIC_AUTH_EMULATOR_HOST;
+      // Auth emulator host and port are combined in one variable.
+      return process.env.NEXT_PUBLIC_AUTH_EMULATOR_HOST?.split(':')[0];
     case 'firestore':
       return process.env.NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST;
     case 'storage':
@@ -23,11 +24,20 @@ function getEmulatorHost(service: 'auth' | 'firestore' | 'storage'): string | un
 
 // A function that grabs the emulator port from environment variables
 // and returns it as a number, or undefined if it's not set.
-function getEmulatorPort(service: 'firestore' | 'storage'): number | undefined {
-  const portString = service === 'firestore' 
-    ? process.env.NEXT_PUBLIC_FIRESTORE_EMULATOR_PORT 
-    : process.env.NEXT_PUBLIC_STORAGE_EMULATOR_PORT;
-
+function getEmulatorPort(service: 'auth' | 'firestore' | 'storage'): number | undefined {
+  const portString = ((): string | undefined => {
+    switch (service) {
+      case 'auth':
+        return process.env.NEXT_PUBLIC_AUTH_EMULATOR_HOST?.split(':')[1];
+      case 'firestore':
+        return process.env.NEXT_PUBLIC_FIRESTORE_EMULATOR_PORT;
+      case 'storage':
+        return process.env.NEXT_PUBLIC_STORAGE_EMULATOR_PORT;
+      default:
+        return undefined;
+    }
+  })();
+  
   return portString ? parseInt(portString, 10) : undefined;
 }
 
@@ -44,10 +54,11 @@ export function initializeFirebase() {
   if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === 'true' && !(auth as any)._isEmulated) {
       // Auth Emulator
       const authHost = getEmulatorHost('auth');
-      if (authHost) {
+      const authPort = getEmulatorPort('auth');
+      if (authHost && authPort) {
         try {
-            connectAuthEmulator(auth, authHost, { disableWarnings: true });
-            console.log("Auth Emulator connected");
+            connectAuthEmulator(auth, `http://${authHost}:${authPort}`, { disableWarnings: true });
+            console.log(`Auth Emulator connected: http://${authHost}:${authPort}`);
         } catch (e) {
             console.warn("Could not connect to Auth Emulator", e);
         }
@@ -59,7 +70,7 @@ export function initializeFirebase() {
       if (firestoreHost && firestorePort) {
         try {
             connectFirestoreEmulator(firestore, firestoreHost, firestorePort);
-            console.log("Firestore Emulator connected");
+            console.log(`Firestore Emulator connected: ${firestoreHost}:${firestorePort}`);
         } catch(e) {
             console.warn("Could not connect to Firestore Emulator", e);
         }
@@ -71,7 +82,7 @@ export function initializeFirebase() {
       if (storageHost && storagePort) {
         try {
             connectStorageEmulator(storage, storageHost, storagePort);
-            console.log("Storage Emulator connected");
+            console.log(`Storage Emulator connected: ${storageHost}:${storagePort}`);
         } catch(e) {
             console.warn("Could not connect to Storage Emulator", e);
         }
