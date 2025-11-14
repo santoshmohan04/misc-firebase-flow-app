@@ -16,9 +16,8 @@ const config: Config = {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   transformIgnorePatterns: [
-    '/node_modules/(?!lucide-react|@dnd-kit|embla-carousel-react|recharts)',
+    '/node_modules/(?!lucide-react).+\\.js$',
   ],
-  preset: 'ts-jest',
 };
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
