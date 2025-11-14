@@ -18,6 +18,8 @@ jest.mock('@/firebase', () => ({
   useAuth: () => ({
     signOut: jest.fn(),
   }),
+  initiateEmailSignIn: jest.fn(),
+  initiateEmailSignUp: jest.fn(),
 }));
 
 jest.mock('@/hooks/use-toast', () => ({
