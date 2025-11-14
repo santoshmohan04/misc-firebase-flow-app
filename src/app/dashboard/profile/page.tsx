@@ -52,14 +52,13 @@ export default function ProfilePage() {
       return;
     }
     
-    // Validate file size before starting the upload process
     if (file.size > 1 * 1024 * 1024) {
       toast({
         title: 'Upload Error',
         description: 'Image file is too large (max 1MB).',
         variant: 'destructive',
       });
-      e.target.value = ''; // Reset file input
+      e.target.value = ''; 
       return;
     }
 
@@ -79,7 +78,6 @@ export default function ProfilePage() {
       });
     } finally {
       setIsUploading(false);
-      // Reset file input to allow re-uploading the same file if needed
       e.target.value = '';
     }
   };
@@ -126,7 +124,7 @@ export default function ProfilePage() {
                   )}
                </div>
                <div className="flex flex-col gap-2">
-                 <Label htmlFor="photo-upload" className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
+                 <Label htmlFor="photo-upload" className={`cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${isUploading ? 'disabled:opacity-50' :'bg-primary text-primary-foreground hover:bg-primary/90'} h-10 px-4 py-2`}>
                     {isUploading ? 'Uploading...' : 'Change Photo'}
                  </Label>
                  <Input id="photo-upload" type="file" className="hidden" onChange={handleFileSelect} accept="image/png, image/jpeg, image/gif" disabled={isUploading} />
