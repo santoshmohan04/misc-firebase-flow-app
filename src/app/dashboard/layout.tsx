@@ -13,6 +13,7 @@ import {
   Menu,
   MessageSquare,
   User,
+  Binary,
 } from "lucide-react";
 import { useEffect } from "react";
 
@@ -75,6 +76,7 @@ export default function DashboardLayout({
     { href: "/dashboard", icon: Home, label: "Dashboard" },
     { href: "/dashboard/firestore", icon: Database, label: "Firestore" },
     { href: "/dashboard/realtime", icon: MessageSquare, label: "AI Chat" },
+    { href: "/dashboard/app-data", icon: Binary, label: "App Data" },
   ];
 
   const NavLinks = ({
@@ -141,7 +143,7 @@ export default function DashboardLayout({
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="flex flex-col">
-              <SheetHeader className="text-left">
+               <SheetHeader className="border-b pb-4 text-left">
                   <SheetTitle>
                     <Link
                       href="/"
@@ -152,7 +154,7 @@ export default function DashboardLayout({
                     </Link>
                   </SheetTitle>
                   <SheetDescription>
-                    Navigate through the application sections.
+                    Navigate through your app.
                   </SheetDescription>
               </SheetHeader>
               <NavLinks isMobile />
