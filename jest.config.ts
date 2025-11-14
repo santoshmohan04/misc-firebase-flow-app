@@ -15,6 +15,9 @@ const config: Config = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
+  transformIgnorePatterns: [
+    '/node_modules/(?!lucide-react|@dnd-kit|embla-carousel-react|recharts)',
+  ],
   preset: 'ts-jest',
 };
 
