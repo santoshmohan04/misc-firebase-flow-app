@@ -34,7 +34,7 @@ import {
   initiateEmailSignUp,
   initiateAnonymousSignIn,
 } from "@/firebase/non-blocking-login";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, AuthError } from "firebase/auth";
+import { GoogleAuthProvider, signInWithRedirect, getRedirectResult, AuthError } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 
 const signInSchema = z.object({
@@ -73,6 +73,25 @@ export default function AuthenticationPage() {
     }
   }, [user, isUserLoading, router]);
 
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result) {
+          // This is the signed-in user
+          const user = result.user;
+          router.push("/dashboard");
+        }
+      })
+      .catch((error: AuthError) => {
+        // Handle Errors here.
+        toast({
+          title: "Google Sign-In Error",
+          description: error.message || "An unexpected error occurred after redirect. Please try again.",
+          variant: "destructive",
+        });
+      });
+  }, [auth, router, toast]);
+
   const onSignInSubmit: SubmitHandler<SignInFormValues> = (data) => {
     initiateEmailSignIn(auth, data.email, data.password);
   };
@@ -83,22 +102,7 @@ export default function AuthenticationPage() {
 
   const handleGoogleSignIn = () => {
     const provider = new GoogleAuthProvider();
-    
-    signInWithPopup(auth, provider)
-      .then((result) => {
-        router.push("/dashboard");
-      })
-      .catch((error: AuthError) => {
-        // Handle Errors here.
-        const errorCode = error.code;
-        const errorMessage = error.message;
-        
-        toast({
-          title: "Google Sign-In Error",
-          description: errorMessage || "An unexpected error occurred. Please try again.",
-          variant: "destructive",
-        });
-      });
+    signInWithRedirect(auth, provider);
   };
 
   const handleAnonymousSignIn = () => {
