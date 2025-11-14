@@ -16,7 +16,7 @@ jest.mock('@/firebase', () => ({
   ...jest.requireActual('@/firebase'), // import and retain all actual exports
   useUser: jest.fn(), // mock useUser
   useAuth: () => ({
-    // provide a mock auth object
+    signOut: jest.fn(),
   }),
 }));
 
