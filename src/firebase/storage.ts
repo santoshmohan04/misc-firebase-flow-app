@@ -1,6 +1,6 @@
 'use client';
 
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref, uploadBytes, getDownloadURL, listAll, StorageReference } from 'firebase/storage';
 import { initializeFirebase } from '.';
 
 const { firebaseApp } = initializeFirebase();
@@ -15,13 +15,23 @@ const storage = getStorage(firebaseApp);
 export const uploadProfileImage = async (file: File, userId: string): Promise<string> => {
     const storageRef = ref(storage, `avatars/${userId}/${file.name}`);
     
-    try {
-        const snapshot = await uploadBytes(storageRef, file);
-        const downloadURL = await getDownloadURL(snapshot.ref);
-        return downloadURL;
-    } catch (error: any) {
-        console.error("Upload failed", error);
-        // You can customize error handling here
-        throw new Error(`Upload failed: ${error.message}`);
-    }
+    const snapshot = await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(snapshot.ref);
+    return downloadURL;
 };
+
+/**
+ * Lists all files for a user in their avatars directory.
+ * @param userId The ID of the user.
+ * @returns A promise that resolves to an array of file references.
+ */
+export const listUserFiles = async (userId: string): Promise<StorageReference[]> => {
+    const userFolderRef = ref(storage, `avatars/${userId}`);
+    try {
+        const res = await listAll(userFolderRef);
+        return res.items;
+    } catch (error) {
+        console.error("Error listing files:", error);
+        return [];
+    }
+}
