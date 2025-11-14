@@ -31,6 +31,8 @@ export default function ProfilePage() {
     setIsSaving(true);
     try {
       await updateProfile(auth.currentUser, { displayName });
+      // Force a refresh of the user object
+      await auth.currentUser.getIdToken(true);
       toast({
         title: 'Success',
         description: 'Your display name has been updated.',
@@ -51,25 +53,24 @@ export default function ProfilePage() {
     if (!file || !user || !auth.currentUser) {
       return;
     }
-    
-    if (file.size > 1 * 1024 * 1024) {
-      toast({
-        title: 'Upload Error',
-        description: 'Image file is too large (max 1MB).',
-        variant: 'destructive',
-      });
-      e.target.value = ''; 
-      return;
-    }
 
     setIsUploading(true);
     try {
+      if (file.size > 1 * 1024 * 1024) {
+        throw new Error('Image file is too large (max 1MB).');
+      }
+
       const photoURL = await uploadProfileImage(file, user.uid);
       await updateProfile(auth.currentUser, { photoURL });
+      
+      // Force a refresh of the user object to get the new photoURL
+      await auth.currentUser.getIdToken(true);
+
       toast({
         title: "Success",
         description: "Profile photo updated successfully!",
       });
+
     } catch (error: any) {
       toast({
         title: 'Upload Error',
