@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useStorage } from '@/firebase';
 import { updateProfile } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,10 +11,12 @@ import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Loader2 } from 'lucide-react';
+import { uploadProfileImage } from '@/firebase/storage';
 
 export default function ProfilePage() {
   const { user } = useUser();
   const auth = useAuth();
+  const storage = useStorage();
   const { toast } = useToast();
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [isSaving, setIsSaving] = useState(false);
@@ -48,46 +50,25 @@ export default function ProfilePage() {
   
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user || !auth.currentUser) {
+    if (!file || !user || !auth.currentUser || !storage) {
       return;
     }
 
     setIsUploading(true);
     try {
-      if (file.size > 1 * 1024 * 1024) { // 1MB limit
-        throw new Error('Image file is too large (max 1MB).');
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        throw new Error('Image file is too large (max 2MB).');
       }
+      
+      const downloadURL = await uploadProfileImage(storage, user, file);
 
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = async () => {
-        const base64 = reader.result as string;
-        try {
-          await updateProfile(auth.currentUser!, { photoURL: base64 });
-          await auth.currentUser!.getIdToken(true); // Force refresh user
-          toast({
-            title: "Success",
-            description: "Profile photo updated successfully!",
-          });
-        } catch (error: any) {
-           toast({
-            title: 'Update Error',
-            description: error.message || "Failed to update profile.",
-            variant: 'destructive',
-          });
-        } finally {
-            setIsUploading(false);
-        }
-      };
-      reader.onerror = (error) => {
-        console.error("FileReader error:", error);
-        toast({
-            title: 'File Read Error',
-            description: "Failed to read the file.",
-            variant: 'destructive',
-        });
-        setIsUploading(false);
-      }
+      await updateProfile(auth.currentUser, { photoURL: downloadURL });
+      await auth.currentUser.getIdToken(true); // Force refresh user token to get new photoURL
+
+      toast({
+        title: "Success",
+        description: "Profile photo updated successfully!",
+      });
 
     } catch (error: any) {
       toast({
@@ -95,9 +76,9 @@ export default function ProfilePage() {
         description: error.message || "An unexpected error occurred.",
         variant: 'destructive',
       });
-      setIsUploading(false);
     } finally {
-      e.target.value = '';
+      setIsUploading(false);
+      e.target.value = ''; // Reset file input
     }
   };
 
@@ -134,6 +115,7 @@ export default function ProfilePage() {
                       alt={avatar.description}
                       className="rounded-full object-cover"
                       data-ai-hint={avatar.imageHint}
+                      key={user?.photoURL} // Force re-render on photoURL change
                     />
                   )}
                   {isUploading && (
@@ -147,7 +129,7 @@ export default function ProfilePage() {
                     {isUploading ? 'Uploading...' : 'Change Photo'}
                  </Label>
                  <Input id="photo-upload" type="file" className="hidden" onChange={handleFileSelect} accept="image/png, image/jpeg, image/gif" disabled={isUploading} />
-                 <p className="text-xs text-muted-foreground">JPG, GIF, or PNG. 1MB max.</p>
+                 <p className="text-xs text-muted-foreground">JPG, GIF, or PNG. 2MB max.</p>
                </div>
             </div>
             <form onSubmit={handleProfileUpdate} className="space-y-4">
